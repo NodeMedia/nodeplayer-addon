@@ -2,7 +2,7 @@
   "name": "nodeplayer-addon",
   "version": "0.1.0",
   "description": "An Electron native player addon, support RTSP and RTMP",
-  "main": "index.js",
+  "main": "js/index.js",
   "files": [
     "prebuilds"
   ],
