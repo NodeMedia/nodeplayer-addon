@@ -1,0 +1,24 @@
+{
+  "name": "nodeplayer-addon",
+  "version": "1.0.0",
+  "description": "An Electron native player addon, support RTSP and RTMP",
+  "main": "index.js",
+  "files": [
+    "prebuilds"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/illuspas/nodeplayer-addon.git"
+  },
+  "keywords": ["electron", "addon", "native", "player", "rtsp", "rtmp"],
+  "author": "Chen Mingliang",
+  "license": "",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/illuspas/nodeplayer-addon/issues"
+  },
+  "homepage": "https://github.com/illuspas/nodeplayer-addon#readme"
+}
