@@ -96,7 +96,9 @@ function getNative() {
  *   player.on('info', (info) => console.log(info))
  *   player.on('data', (buffer) => console.log(buffer.length))
  *   player.start('rtsp://...')
+ *   player.startRecord('./record.mp4')
  *   // ...
+ *   player.stopRecord()
  *   player.stop()
  */
 class NodePlayer extends EventEmitter {
@@ -151,6 +153,24 @@ class NodePlayer extends EventEmitter {
       this._player.stop()
       this._started = false
     }
+  }
+
+  /**
+   * 开始录像
+   * @param {string} outputPath - 输出 MP4 文件路径
+   */
+  startRecord(outputPath) {
+    if (!this._started) {
+      throw new Error('Pipeline not started')
+    }
+    this._player.startRecord(outputPath)
+  }
+
+  /**
+   * 停止录像（生成完整 MP4 文件）
+   */
+  stopRecord() {
+    this._player.stopRecord()
   }
   
 }
