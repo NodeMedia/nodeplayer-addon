@@ -49,7 +49,6 @@ const createWindow = () => {
 
   mainWindow.on('closed', () => {
     NodePlayerAddon.unregisterIpc(ipcMain)
-    mainWindow = null
   })
   NodePlayerAddon.registerIpc(ipcMain, {
     getWindow: () => mainWindow,
