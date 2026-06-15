@@ -239,8 +239,6 @@ const player = new VideoPlayer(video, id, options?)
 | `video` | `HTMLVideoElement` | The `<video>` element to render into |
 | `id` | `string` | Unique player identifier (used for IPC channel names) |
 | `options` | `object` | Optional configuration |
-| `options.onStatus` | `(id: string, text: string) => void` | Status change callback |
-| `options.onRecord` | `(id: string, recording: boolean, msg: string) => void` | Recording state change callback |
 | `options.api` | `object` | Custom IPC bridge (default: `window.electronAPI`) |
 
 ### Instance Properties
@@ -256,6 +254,33 @@ const player = new VideoPlayer(video, id, options?)
 | `audioCodecString` | `string \| null` | `null` | Audio codec MIME string (e.g., `"mp4a.40.2"`) |
 
 ### Instance Methods
+
+#### `on(event, fn)` → `this`
+
+Register an event listener. Supports chaining and multiple listeners per event.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `event` | `'event' \| 'error'` | Event name |
+| `fn` | `function` | Listener function |
+| **Returns** | `this` | Supports chaining |
+
+**Events:**
+
+| Event | Callback | Description |
+|-------|----------|-------------|
+| `'event'` | `(code: number, msg: string) => void` | Native event forwarded raw — connection status, recording lifecycle, etc. See [Event Codes Reference](#event-codes-reference) |
+| `'error'` | `(err: Error) => void` | JS-layer errors (IPC failures, MediaSource init errors, data processing errors) |
+
+#### `off(event, fn)` → `this`
+
+Remove a previously registered event listener.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `event` | `'event' \| 'error'` | Event name |
+| `fn` | `function` | The listener function to remove |
+| **Returns** | `this` | Supports chaining |
 
 #### `start(url)` → `Promise<void>`
 
@@ -497,13 +522,14 @@ import VideoPlayer from 'nodeplayer-addon/video-player'
 
 const videoEl = document.querySelector('video')
 
-const player = new VideoPlayer(videoEl, 'stream-1', {
-  onStatus(id, text) {
-    console.log(`[${id}] Status: ${text}`)
-  },
-  onRecord(id, recording, msg) {
-    console.log(`[${id}] Recording: ${recording}, ${msg}`)
-  },
+const player = new VideoPlayer(videoEl, 'stream-1')
+
+player.on('event', (code, msg) => {
+  console.log(`[stream-1] Event: ${code} ${msg}`)
+})
+
+player.on('error', (err) => {
+  console.error(`[stream-1] Error: ${err.message}`)
 })
 
 // Start playback
@@ -567,9 +593,11 @@ const streams = [
 
 const players = streams.map(({ id, url }) => {
   const videoEl = document.getElementById(id)
-  const player = new VideoPlayer(videoEl, id, {
-    onStatus(id, text) { updateStatusLabel(id, text) },
+  const player = new VideoPlayer(videoEl, id)
+  player.on('event', (code, msg) => {
+    if (code <= 1999) updateStatusLabel(id, `${code}: ${msg}`)
   })
+  player.on('error', (err) => { updateStatusLabel(id, 'Error: ' + err.message) })
   player.start(url)
   return player
 })

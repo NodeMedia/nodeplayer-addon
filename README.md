@@ -130,12 +130,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const statusEl = document.getElementById('status')
     const urlInput = document.getElementById('url')
 
-    const player = new VideoPlayer(videoEl, 'demo', {
-      onStatus(id, text) { statusEl.textContent = text },
-      onRecord(id, recording) {
-        document.getElementById('btn-record').textContent = recording ? '停止录像' : '录像'
-      }
+    const player = new VideoPlayer(videoEl, 'demo')
+
+    const EVENT_STATUS = {
+      1000: 'Connecting...', 1001: 'Connected', 1002: 'Connection failed',
+      1003: 'Reconnecting...', 1004: 'Disconnected', 1005: 'Network error',
+      1006: 'Connection timeout',
+    }
+
+    player.on('event', (code, msg) => {
+      if (code in EVENT_STATUS) statusEl.textContent = msg ? `${EVENT_STATUS[code]}: ${msg}` : EVENT_STATUS[code]
+      if (code === 3001) document.getElementById('btn-record').textContent = '停止录像'
+      if (code === 3002 || code === 3003) document.getElementById('btn-record').textContent = '录像'
     })
+    player.on('error', (err) => { statusEl.textContent = 'Error: ' + err.message })
 
     document.getElementById('btn-start').onclick = () => player.start(urlInput.value)
     document.getElementById('btn-stop').onclick = () => player.stop()
@@ -159,10 +167,12 @@ export default function PlayerView({ url }) {
   const [recording, setRecording] = useState(false)
 
   useEffect(() => {
-    const player = new VideoPlayer(videoRef.current, `player-${Date.now()}`, {
-      onStatus(id, text) { setStatus(text) },
-      onRecord(id, rec) { setRecording(rec) },
+    const player = new VideoPlayer(videoRef.current, `player-${Date.now()}`)
+    player.on('event', (code, msg) => {
+      if (code === 3001) setRecording(true)
+      if (code === 3002 || code === 3003) setRecording(false)
     })
+    player.on('error', (err) => { setStatus(err.message) })
     playerRef.current = player
 
     return () => { player.stop() }
@@ -232,10 +242,12 @@ const recording = ref(false)
 let player = null
 
 onMounted(() => {
-  player = new VideoPlayer(videoEl.value, `player-${Date.now()}`, {
-    onStatus(id, text) { status.value = text },
-    onRecord(id, rec) { recording.value = rec },
+  player = new VideoPlayer(videoEl.value, `player-${Date.now()}`)
+  player.on('event', (code, msg) => {
+    if (code === 3001) recording.value = true
+    if (code === 3002 || code === 3003) recording.value = false
   })
+  player.on('error', (err) => { status.value = err.message })
 })
 
 onUnmounted(() => { player?.stop() })
