@@ -18,15 +18,16 @@
   },
   "files": [
     "dist",
+    "docs",
     "prebuilds",
-    "SKILL.md"
+    "README.md"
   ],
   "scripts": {
     "test": "exit 0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/illuspas/nodeplayer-addon.git"
+    "url": "git+https://github.com/NodeMedia/nodeplayer-addon.git"
   },
   "keywords": [
     "electron",
@@ -40,7 +41,7 @@
   "license": "",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/illuspas/nodeplayer-addon/issues"
+    "url": "https://github.com/NodeMedia/nodeplayer-addon/issues"
   },
-  "homepage": "https://github.com/illuspas/nodeplayer-addon#readme"
+  "homepage": "https://github.com/NodeMedia/nodeplayer-addon#readme"
 }
