@@ -112,6 +112,10 @@ const playerAPI = {
   destroyPlayer: (id) => ipcRenderer.invoke('player:destroy', id),
   startRecord: (id, filePath) => ipcRenderer.invoke('player:startRecord', id, filePath),
   stopRecord: (id) => ipcRenderer.invoke('player:stopRecord', id),
+  // 截图：将渲染进程生成的 JPG base64 数据保存到指定路径（默认由主进程自动生成）
+  saveScreenshot: (id, outputPath, base64Data) => ipcRenderer.invoke('player:screenshot', id, outputPath, base64Data),
+  // 预探测：在创建播放器前分析 URL（连接性 / 编码 / 分辨率 / 首帧截图）
+  getMediaInfo: (url) => ipcRenderer.invoke('player:getMediaInfo', url),
 
   onEvent: (id, callback) => {
     const channel = `player:event:${id}`
@@ -196,6 +200,13 @@ async function handleStop() {
   status.value = ''
 }
 
+async function handleScreenshot() {
+  const player = playerRef.value
+  if (!player) return
+  const r = await player.saveScreenshot()
+  status.value = r.success ? '截图已保存：' + r.path : (r.error || '截图失败')
+}
+
 function onKeydown(e) {
   if (e.key === 'Enter' && !playing.value) handlePlay()
 }
@@ -217,6 +228,7 @@ function onKeydown(e) {
         ▶ Play
       </button>
       <button v-else class="btn btn-stop" @click="handleStop">■ Stop</button>
+      <button v-if="playing" class="btn btn-screenshot" @click="handleScreenshot">截图</button>
     </div>
 
     <div class="player-video-wrapper">
@@ -251,6 +263,67 @@ import VideoPlayerView from './components/VideoPlayerView.vue'
 
 ## 运行效果
 ![](https://www.nodemedia.cn/wp-content/uploads/2026/06/QQ20260601-171000.jpg)
+
+## 7. 更多功能
+
+上面的示例只演示了「播放 / 停止 / 截图」。`registerIpc` 实际在主进程注册了更多能力，下面按需选用。
+
+### 事件码参考
+
+播放器通过 `player.on('event', (code, msg) => {})` 推送事件，常用码如下：
+
+| 范围 | code | 含义 |
+|------|------|------|
+| 连接 | 1000 | 正在连接 |
+|      | 1001 | 已连接 |
+|      | 1002 | 连接失败 |
+|      | 1003 | 重连中 |
+|      | 1004 | 已断开 |
+|      | 1005 | 网络错误 |
+|      | 1006 | 连接超时 |
+| 录像 | 3001 | 录像开始 |
+|      | 3002 | 录像停止 |
+|      | 3003 | 录像错误 |
+
+> 流的编码、分辨率、采样率等参数通过 `player.on('info', (info) => {})` 单独推送，不走 `event`。
+
+### 流预探测（getMediaInfo）
+
+在加入播放列表前，可先探测地址是否可达、获取音视频参数并截取首帧预览图，整个过程不依赖任何播放器实例：
+
+```js
+// preload.js 已暴露：window.electronAPI.getMediaInfo(url)
+const info = await window.electronAPI.getMediaInfo('rtsp://...')
+
+if (!info.success) {
+  console.warn('探测失败：', info.error)
+} else {
+  const { video, audio, screenshot } = info.info
+  console.log(`视频：${video.width}x${video.height}（codecId=${video.codecId}）`)
+  console.log(`音频：采样率=${audio.sampleRate}，声道=${audio.channels}`)
+  if (screenshot) {
+    // screenshot 为 MJPEG 二进制 Buffer（base64 后可直接作为 <img> src）
+    previewImg.src = 'data:image/jpeg;base64,' + screenshot
+  }
+}
+```
+
+### 截图
+
+`VideoPlayer` 提供两种截图方式，均在**流就绪后**调用：
+
+- `player.captureScreenshot(quality?)` → 返回 `data:image/jpeg;base64,...` 字符串（仅在内存中，不落盘）
+- `player.saveScreenshot(outputPath?, quality?)` → 通过 IPC 将 JPG 写入磁盘，返回 `{ success, path }`，路径省略时由主进程自动生成
+
+```js
+// 直接预览（不落盘）
+const dataUrl = player.captureScreenshot(0.9)
+if (dataUrl) snapshotImg.src = dataUrl
+
+// 保存到文件
+const r = await player.saveScreenshot()
+if (r.success) console.log('已保存：', r.path)
+```
 
 ## 联系客服索取demo源码
 - QQ: 281269007
