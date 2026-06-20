@@ -124,7 +124,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   </div>
 
   <!-- 在 preload.js 中已通过 contextBridge 暴露 window.electronAPI -->
-  <script src="https://cdn.jsdelivr.net/npm/nodeplayer-addon/dist/video-player.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nodeplayer-addon/dist/video-player.js"></script>
   <script>
     const videoEl = document.getElementById('video')
     const statusEl = document.getElementById('status')
