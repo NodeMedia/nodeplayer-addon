@@ -1,8 +1,5 @@
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.VideoPlayer = factory());
-})(this, (function () { 'use strict';
+var VideoPlayer = (function () {
+  'use strict';
 
   /**
    * VideoPlayer — MediaSource Extension based video player for Electron renderer.
@@ -436,4 +433,4 @@
 
   return VideoPlayer;
 
-}));
+})();

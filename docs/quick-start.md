@@ -155,7 +155,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   </div>
 
   <!-- 在 preload.js 中已通过 contextBridge 暴露 window.electronAPI -->
-  <script src="https://cdn.jsdelivr.net/npm/nodeplayer-addon/dist/video-player.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nodeplayer-addon/dist/video-player.js"></script>
   <script>
     const videoEl = document.getElementById('video')
     const statusEl = document.getElementById('status')
@@ -189,7 +189,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 </body>
 </html>
 ```
-本例子使用UMD模式加载播放前端，如果是离线部署，可以将 https://cdn.jsdelivr.net/npm/nodeplayer-addon/dist/video-player.umd.js 下载到本地进行加载。
+如果是离线部署，可以将 https://cdn.jsdelivr.net/npm/nodeplayer-addon/dist/video-player.js 下载到本地进行加载。
 
 ## 5.再次运行 `npm start` 可以启动页面并输入播放地址 rtsp:// or rtmp://
 ![](https://www.nodemedia.cn/wp-content/uploads/2026/05/QQ20260529-135357.png)
