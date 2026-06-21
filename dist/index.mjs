@@ -21,7 +21,6 @@ function requireJs () {
 	const { existsSync, mkdirSync, writeFileSync } = require$$1;
 	const { join, dirname } = require$$2;
 	const { createRequire } = require$$3;
-	const { platform, arch } = process;
 
 	/**
 	 * 获取原生 require，绕过 webpack/vite 的模块替换
@@ -77,7 +76,7 @@ function requireJs () {
 	    const req = getNativeRequire();
 	    const basePath = resolvePackageRoot();
 
-	    const prebuildPath = join(basePath, 'prebuilds', `${platform}-${arch}`, 'node_player.node');
+	    const prebuildPath = join(basePath, 'prebuilds', `${process.platform}-${process.arch}`, 'node_player.node');
 	    const localPath = join(basePath, 'build', 'Release', 'node_player.node');
 
 	    if (existsSync(prebuildPath)) {
@@ -92,7 +91,7 @@ function requireJs () {
 	        `    Local:    ${localPath}\n` +
 	        `  Resolved root: ${basePath}\n` +
 	        `  __dirname:     ${__dirname}\n` +
-	        `  Platform:      ${platform}-${arch}\n\n` +
+	        `  Platform:      ${process.platform}-${process.arch}\n\n` +
 	        `If using webpack/vite, add to externals:\n` +
 	        `  webpack: externals: { 'nodeplayer-addon': 'commonjs nodeplayer-addon' }\n` +
 	        `  vite:    optimizeDeps: { exclude: ['nodeplayer-addon'] }`
@@ -111,12 +110,12 @@ function requireJs () {
 	  'player:destroy',
 	  'player:startRecord',
 	  'player:stopRecord',
-	  'player:screenshot',
+	  'player:saveScreenshot',
 	  'player:getMediaInfo'
 	];
 
 	/**
-	 * NodePlayer - RTSP/RTMP/KMP 流媒体播放器
+	 * NodePlayerAddon - RTSP/RTMP/KMP 流媒体播放器
 	 * 
 	 * 支持的事件:
 	 *   - 'event': (code, msg) => {} - 管线事件
@@ -125,7 +124,7 @@ function requireJs () {
 	 * 
 	 * 使用示例:
 	 *   // 正式授权模式
-	 *   const player = new NodePlayer({ licensePath: '/path/to/license.dat' })
+	 *   const player = new NodePlayerAddon({ licensePath: '/path/to/license.dat' })
 	 *   player.on('info', (info) => console.log(info))
 	 *   player.on('data', (buffer) => console.log(buffer.length))
 	 *   player.start('rtsp://...')
@@ -135,10 +134,10 @@ function requireJs () {
 	 *   player.stop()
 	 * 
 	 *   // 试用模式（无需许可证，累计 10 分钟）
-	 *   const player = new NodePlayer()
+	 *   const player = new NodePlayerAddon()
 	 *   player.start('rtsp://...')
 	 */
-	class NodePlayer extends EventEmitter {
+	class NodePlayerAddon extends EventEmitter {
 	  /**
 	   * @param {object} [options] - 配置选项
 	   * @param {string} [options.licensePath] - 许可证文件路径。
@@ -148,7 +147,7 @@ function requireJs () {
 	  constructor(options) {
 	    super();
 	    const opts = options || {};
-	    this._player = new (getNative().NodePlayer)(opts);
+	    this._player = new (getNative().NodePlayerNative)(opts);
 	    this._started = false;
 	    this._trialMode = !opts.licensePath;
 
@@ -248,9 +247,9 @@ function requireJs () {
 	   * @example
 	   * // main.js
 	   * const { ipcMain, app } = require('electron')
-	   * const NodePlayer = require('nodeplayer-addon')
+	   * const NodePlayerAddon = require('NodePlayerAddon-addon')
 	   *
-	   * NodePlayer.registerIpc(ipcMain, {
+	   * NodePlayerAddon.registerIpc(ipcMain, {
 	   *   getWindow: () => mainWindow,
 	   *   licensePath: app.isPackaged
 	   *     ? path.join(process.resourcesPath, 'license.dat')
@@ -267,17 +266,6 @@ function requireJs () {
 	      }
 	    };
 
-	    // 预探测：分析 URL 是否可连接 + 视频/音频参数 + 截图（与 player 实例无关）
-	    // 返回 { success, info?: { video, audio, screenshot } }
-	    ipcMain.handle('player:getMediaInfo', async (event, url) => {
-	      try {
-	        const info = await NodePlayer.getMediaInfo(url);
-	        return { success: true, info }
-	      } catch (e) {
-	        return { success: false, error: e.message }
-	      }
-	    });
-
 	    ipcMain.handle('player:create', (event, id, playerOptions) => {
 	      if (_ipcPlayers.has(id)) {
 	        return { success: false, error: 'Player already exists' }
@@ -288,7 +276,7 @@ function requireJs () {
 	        opts.licensePath = licensePath;
 	      }
 
-	      const player = new NodePlayer(opts);
+	      const player = new NodePlayerAddon(opts);
 
 	      player.on('event', (code, msg) => {
 	        send(`player:event:${id}`, { code, msg });
@@ -380,7 +368,7 @@ function requireJs () {
 	      }
 	    });
 
-	    ipcMain.handle('player:screenshot', (event, id, outputPath, base64Data) => {
+	    ipcMain.handle('player:saveScreenshot', (event, id, outputPath, base64Data) => {
 	      try {
 	        const savePath = outputPath || join(
 	          process.cwd(),
@@ -396,6 +384,17 @@ function requireJs () {
 	        return { success: false, error: e.message }
 	      }
 	    });
+
+	    // 预探测：分析 URL 是否可连接 + 视频/音频参数 + 截图（与 player 实例无关）
+	    // 返回 { success, info?: { video, audio, screenshot } }
+	    ipcMain.handle('player:getMediaInfo', async (event, url) => {
+	      try {
+	        const info = await NodePlayerAddon.getMediaInfo(url);
+	        return { success: true, info }
+	      } catch (e) {
+	        return { success: false, error: e.message }
+	      }
+	    });
 	  }
 
 	  /**
@@ -405,7 +404,7 @@ function requireJs () {
 	   *
 	   * @example
 	   * mainWindow.on('closed', () => {
-	   *   NodePlayer.unregisterIpc(ipcMain)
+	   *   NodePlayerAddon.unregisterIpc(ipcMain)
 	   * })
 	   */
 	  static unregisterIpc(ipcMain) {
@@ -436,7 +435,7 @@ function requireJs () {
 	   *   - screenshot: MJPEG 二进制 Buffer；解码失败/无视频时为 null
 	   *
 	   * @example
-	   * const info = await NodePlayer.getMediaInfo('rtsp://...')
+	   * const info = await NodePlayerAddon.getMediaInfo('rtsp://...')
 	   * console.log(info.video.width + 'x' + info.video.height)
 	   * if (info.screenshot) {
 	   *   const base64 = info.screenshot.toString('base64')
@@ -454,7 +453,7 @@ function requireJs () {
 
 	}
 
-	js = NodePlayer;
+	js = NodePlayerAddon;
 	return js;
 }
 

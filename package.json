@@ -10,10 +10,8 @@
       "require": "./dist/index.cjs",
       "default": "./dist/index.cjs"
     },
-    "./video-player": {
-      "import": "./dist/video-player.mjs",
-      "require": "./dist/video-player.umd.js",
-      "default": "./dist/video-player.mjs"
+    "./NodePlayerView": {
+      "default": "./dist/NodePlayerView.mjs"
     }
   },
   "files": [
