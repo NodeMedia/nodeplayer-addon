@@ -16,6 +16,7 @@ NodePlayerAddon 是一款专为 Electron 开发的播放器插件，基于 NAPI 
 | [quick-start.md](./quick-start.md) | Minimal Electron integration (Electron Forge + HTML/UMD) | start here |
 | [react-frontend.md](./react-frontend.md) | React frontend with create-electron scaffold | on demand |
 | [vue-frontend.md](./vue-frontend.md) | Vue frontend with create-electron scaffold | on demand |
+| [get-media-info.md](./get-media-info.md) | 流预探测 API：连接性 / 编解码参数 / 首帧截图 | reference |
 
 ## 应用案例
 

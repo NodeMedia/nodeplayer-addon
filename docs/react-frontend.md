@@ -135,7 +135,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startRecord: (id, filePath) => ipcRenderer.invoke('player:startRecord', id, filePath),
   stopRecord: (id) => ipcRenderer.invoke('player:stopRecord', id),
   // 截图：将渲染进程生成的 JPG base64 数据保存到指定路径（默认由主进程自动生成）
-  saveScreenshot: (id, outputPath, base64Data) => ipcRenderer.invoke('player:screenshot', id, outputPath, base64Data),
+  saveScreenshot: (id, outputPath, base64Data) => ipcRenderer.invoke('player:saveScreenshot', id, outputPath, base64Data),
   // 预探测：在创建播放器前分析 URL（连接性 / 编码 / 分辨率 / 首帧截图）
   getMediaInfo: (url) => ipcRenderer.invoke('player:getMediaInfo', url),
 
@@ -166,7 +166,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 ## 5.编辑src/renderer/src/App.jsx
 ```js
 import { useRef, useEffect, useState, useCallback } from 'react'
-import VideoPlayer from 'nodeplayer-addon/video-player'
+import NodePlayerView from 'nodeplayer-addon/NodePlayerView'
 
 function App() {
   const videoRef = useRef(null)
@@ -176,7 +176,7 @@ function App() {
   const [recording, setRecording] = useState(false)
 
   useEffect(() => {
-    const player = new VideoPlayer(videoRef.current, `player-${Date.now()}`)
+    const player = new NodePlayerView(videoRef.current, `player-${Date.now()}`)
     player.on('event', (code, msg) => {
       if (code === 3001) setRecording(true)
       if (code === 3002 || code === 3003) setRecording(false)
@@ -287,28 +287,13 @@ export default App
 
 ### 流预探测（getMediaInfo）
 
-在加入播放列表前，可先探测地址是否可达、获取音视频参数并截取首帧预览图，整个过程不依赖任何播放器实例：
+在加入播放列表前，可先探测地址是否可达、获取音视频参数并截取首帧预览图。
 
-```js
-// preload.js 已暴露：window.electronAPI.getMediaInfo(url)
-const info = await window.electronAPI.getMediaInfo('rtsp://...')
-
-if (!info.success) {
-  console.warn('探测失败：', info.error)
-} else {
-  const { video, audio, screenshot } = info.info
-  console.log(`视频：${video.width}x${video.height}（codecId=${video.codecId}）`)
-  console.log(`音频：采样率=${audio.sampleRate}，声道=${audio.channels}`)
-  if (screenshot) {
-    // screenshot 为 MJPEG 二进制 Buffer（base64 后可直接作为 <img> src）
-    previewImg.src = 'data:image/jpeg;base64,' + screenshot
-  }
-}
-```
+👉 完整 API、codec 参考表与示例：[get-media-info.md](./get-media-info.md)
 
 ### 截图
 
-`VideoPlayer` 提供两种截图方式，均在**流就绪后**调用：
+`NodePlayerView` 提供两种截图方式，均在**流就绪后**调用：
 
 - `player.captureScreenshot(quality?)` → 返回 `data:image/jpeg;base64,...` 字符串（仅在内存中，不落盘）
 - `player.saveScreenshot(outputPath?, quality?)` → 通过 IPC 将 JPG 写入磁盘，返回 `{ success, path }`，路径省略时由主进程自动生成

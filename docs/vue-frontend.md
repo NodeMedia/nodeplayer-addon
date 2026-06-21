@@ -38,7 +38,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import NodePlayer from 'nodeplayer-addon'
+import NodePlayerAddon from 'nodeplayer-addon'
 
 let mainWindow = null
 
@@ -80,7 +80,7 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  NodePlayer.registerIpc(ipcMain, {
+  NodePlayerAddon.registerIpc(ipcMain, {
     getWindow: () => mainWindow,
     licensePath: app.isPackaged
       ? join(process.resourcesPath, 'license.dat')
@@ -113,7 +113,7 @@ const playerAPI = {
   startRecord: (id, filePath) => ipcRenderer.invoke('player:startRecord', id, filePath),
   stopRecord: (id) => ipcRenderer.invoke('player:stopRecord', id),
   // 截图：将渲染进程生成的 JPG base64 数据保存到指定路径（默认由主进程自动生成）
-  saveScreenshot: (id, outputPath, base64Data) => ipcRenderer.invoke('player:screenshot', id, outputPath, base64Data),
+  saveScreenshot: (id, outputPath, base64Data) => ipcRenderer.invoke('player:saveScreenshot', id, outputPath, base64Data),
   // 预探测：在创建播放器前分析 URL（连接性 / 编码 / 分辨率 / 首帧截图）
   getMediaInfo: (url) => ipcRenderer.invoke('player:getMediaInfo', url),
 
@@ -157,7 +157,7 @@ if (process.contextIsolated) {
 ```vue
 <script setup>
 import { ref, shallowRef } from 'vue'
-import VideoPlayer from 'nodeplayer-addon/video-player'
+import NodePlayerView from 'nodeplayer-addon/NodePlayerView'
 
 const url = ref('rtsp://')
 const status = ref('')
@@ -172,7 +172,7 @@ async function handlePlay() {
   const video = videoRef.value
   if (!video) return
 
-  const player = new VideoPlayer(video, 'player-1')
+  const player = new NodePlayerView(video, 'player-1')
 
   const EVENT_STATUS = {
     1000: 'Connecting...', 1001: 'Connected', 1002: 'Connection failed',
@@ -289,28 +289,13 @@ import VideoPlayerView from './components/VideoPlayerView.vue'
 
 ### 流预探测（getMediaInfo）
 
-在加入播放列表前，可先探测地址是否可达、获取音视频参数并截取首帧预览图，整个过程不依赖任何播放器实例：
+在加入播放列表前，可先探测地址是否可达、获取音视频参数并截取首帧预览图。
 
-```js
-// preload.js 已暴露：window.electronAPI.getMediaInfo(url)
-const info = await window.electronAPI.getMediaInfo('rtsp://...')
-
-if (!info.success) {
-  console.warn('探测失败：', info.error)
-} else {
-  const { video, audio, screenshot } = info.info
-  console.log(`视频：${video.width}x${video.height}（codecId=${video.codecId}）`)
-  console.log(`音频：采样率=${audio.sampleRate}，声道=${audio.channels}`)
-  if (screenshot) {
-    // screenshot 为 MJPEG 二进制 Buffer（base64 后可直接作为 <img> src）
-    previewImg.src = 'data:image/jpeg;base64,' + screenshot
-  }
-}
-```
+👉 完整 API、codec 参考表与示例：[get-media-info.md](./get-media-info.md)
 
 ### 截图
 
-`VideoPlayer` 提供两种截图方式，均在**流就绪后**调用：
+`NodePlayerView` 提供两种截图方式，均在**流就绪后**调用：
 
 - `player.captureScreenshot(quality?)` → 返回 `data:image/jpeg;base64,...` 字符串（仅在内存中，不落盘）
 - `player.saveScreenshot(outputPath?, quality?)` → 通过 IPC 将 JPG 写入磁盘，返回 `{ success, path }`，路径省略时由主进程自动生成
